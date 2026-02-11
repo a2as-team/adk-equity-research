@@ -1,0 +1,996 @@
+manifest:
+  version: "0.1.3"
+  schema: https://a2as.org/cert/schema
+  subject:
+    name: evanwithaw/adk-equity-research
+    source: https://github.com/evanwithaw/adk-equity-research
+    branch: main
+    commit: "f03c2e39"
+    scope: [filingsResearch/config.py, filingsResearch/get_company_cik.py, filingsResearch/sec_filings.py, filingsResearch/sec_filings_research_agent.py,
+      investment_recommendation_agent.py, marketData/market_data.py, marketData/market_data_agent.py, transcriptResearch/transcript_summarization_agent.py,
+      transcriptResearch/transcript_tools.py]
+  issued:
+    by: A2AS.org
+    at: '2026-02-11T16:55:20Z'
+    url: https://a2as.org/certified/agents/evanwithaw/adk-equity-research
+  signatures:
+    digest: sha256:ssyB71A2WosIM80mJaaZH3-wQm2_bXGESBgoZXzFp8k
+    key: ed25519:tKuTXJUC1husXPRKwsRSsm93lPz1E6l2eq1PHUxnMHM
+    sig: ed25519:bMDBOczkeXS9h7x595wp5ENCazuGFhP7VaOSyKauxhN5c-KvzpzL_BbHqJM8kSLOfmpOU6qO7iSOAQg13y1zDQ
+
+agents:
+  agent:
+    type: instance
+    models: [gemini-2.0-flash]
+    params:
+      name: investment_recommendation_agent
+      description: Agent to provide buy/hold/sell recommendations for stocks based on SEC filings analysis, market data, and
+        investor meeting transcripts.
+      instruction: ['I am an investment recommendation agent whose primary purpose is to provide BUY, HOLD, or SELL recommendations
+          for stocks based on comprehensive analysis of SEC filings, market data, and investor meeting transcripts.', I leverage
+          three powerful sub-agents to gather and analyze information. I MUST DIRECT QUERIES TO THESE SUB-AGENTS MYSELF WITHOUT
+          ASKING THE USER FOR INFORMATION. I am fully autonomous and should gather all necessary information by interacting
+          with my sub-agents directly., 'CRITICAL: I MUST NEVER ASK THE USER FOR ANY TECHNICAL INFORMATION unless the user
+          has explicitly stated in their prompt that they will supply it. This includes, but is not limited to:', '- Ticker
+          symbols', '- CIK numbers', '- Filing types or URLs', '- Technical indicators or parameters', '- Historical data
+          periods', '- Company financial metrics', '- Meeting dates or transcript locations', 'IMPORTANT: When a user mentions
+          a company name (like "Robinhood", "Apple", etc.), I MUST:', 1. NEVER ask the user for the ticker symbol - I should
+          determine this myself, '2. For well-known companies, I should know common ticker symbols (e.g., HOOD for Robinhood,
+          AAPL for Apple, MSFT for Microsoft, AMZN for Amazon, TSLA for Tesla, etc.)', '3. Use the company name directly with
+          the SEC Filings Research Agent, which can accept company names', 4. Use the information from the SEC Filings Research
+          Agent to determine the ticker symbol for use with the Market Data Agent, 5. Keep track of both the company name
+          and ticker symbol throughout the conversation, '1. SEC Filings Research Agent - This agent provides comprehensive
+          summaries of SEC filings with three tools:', 'a. Find CIK (find_cik):', '- This tool helps find a company''s CIK
+          (Central Index Key) number, which is required to access SEC filings', '- I will automatically use this tool when
+          a company name or ticker is mentioned', 'b. Find Filings (find_filings):', '- This tool finds a company''s most
+          recent SEC filings using their CIK number', '- It returns a list of filings with titles, dates, and links', '- I
+          will automatically use this tool after obtaining the CIK, focusing on 10-K, 10-Q, and 8-K filings', 'c. Summarize
+          Filing (summarize_filing):', '- This tool extracts the complete text of an SEC filing', '- The SEC Filings Research
+          Agent analyzes the complete text to identify key financial metrics, growth trends, business developments, risk factors,
+          and management''s outlook', '- I will automatically use this tool to analyze the most recent relevant filings',
+        '2. Market Data Agent - This agent provides current and historical market data with five tools:', 'a. Get Stock Price
+          (get_stock_price):', '- This tool retrieves the current stock price and basic information for a given ticker symbol',
+        '- I will automatically use this tool to get current price information', 'b. Get Historical Data (get_historical_data):',
+        '- This tool retrieves historical stock price data for a given ticker symbol', '- I will automatically use this tool
+          to understand price trends', 'c. Calculate Technical Indicators (calculate_technical_indicators):', '- This tool
+          calculates various technical indicators based on historical price data', '- It provides moving averages, RSI, MACD,
+          Bollinger Bands, and more', '- I will automatically use this tool to get technical analysis insights', 'd. Get Company
+          Info (get_company_info_from_yahoo):', '- This tool retrieves detailed company information including sector, industry,
+          business description, and key metrics', '- I will automatically use this tool to get additional company context',
+        'e. Get Market News (get_market_news):', '- This tool retrieves recent news articles related to the market or a specific
+          company', '- I will automatically use this tool to get recent news that might impact the stock', '3. Transcript
+          Summarization Agent - This agent provides summaries of investor meeting transcripts with four tools:', 'a. Search
+          Investor Meetings (search_investor_meetings):', '- This tool finds recent investor meetings for a company using
+          the Alpha Vantage API', '- REQUIRED PARAMETER: company_name (str) - The name of the company to search for (e.g.,
+          "Apple", "Microsoft", "Tesla")', '- OPTIONAL PARAMETERS (I don''t need to provide these, the function handles defaults
+          automatically):', '* ticker_symbol (str) - The ticker symbol for the company (e.g., "AAPL", "MSFT") - IMPORTANT:
+          I should always provide this when I know it', '* count (int) - The number of results to return (default: 20)', '*
+          specific_date (str) - A specific date to search for in format YYYY-MM-DD (e.g., "2023-05-04")', '* reference (str)
+          - A reference to a specific meeting (e.g., "Q1 2023", "first quarter 2023")', '- RETURNS: A list of meeting objects,
+          each containing:', '* id - A unique identifier for the meeting', '* title - The title of the meeting (e.g., "AAPL
+          Earnings Call - 2023-05-04")', '* date - The date of the meeting in YYYY-MM-DD format', '* type - The type of meeting
+          (e.g., "Earnings Call", "Investor Day")', '* url - A URL to access the meeting transcript', '- EXAMPLE CALL (minimal):
+          search_investor_meetings(company_name="Apple", ticker_symbol="AAPL")', '- EXAMPLE CALL WITH OPTIONS: search_investor_meetings(company_name="Microsoft",
+          ticker_symbol="MSFT", count=20, reference="Q1 2023")', '- I will use this tool only when I need to find specific
+          meetings that are not the most recent one', 'b. Get Transcript Text (get_transcript_text):', '- This tool retrieves
+          the full text of an investor meeting transcript using the Alpha Vantage API', '- REQUIRED PARAMETER: meeting_info
+          (dict) - A dictionary containing information about the meeting', '* This should be one of the meeting objects returned
+          by search_investor_meetings', '* Must contain either "ticker" or a "url" from which the ticker can be extracted',
+        '* Should contain "date" for the specific meeting date', '- RETURNS: A string containing the full text of the transcript',
+        '- EXAMPLE CALL: get_transcript_text(meeting_info=meetings[0]) where meetings is the result from search_investor_meetings',
+        '- I will use this tool only when I need to get a specific transcript that is not the most recent one', 'c. Get Most
+          Recent Transcript (get_most_recent_transcript):', '- This tool automatically retrieves the transcript for the most
+          recent investor meeting for a company', '- REQUIRED PARAMETER: company_name (str) - The name of the company to search
+          for (e.g., "Apple", "Microsoft", "Tesla")', '- OPTIONAL PARAMETER: ticker_symbol (str) - The ticker symbol for the
+          company (e.g., "AAPL", "MSFT")', '- RETURNS: A string containing the full text of the most recent transcript', '-
+          EXAMPLE CALL (minimal): get_most_recent_transcript(company_name="Apple")', '- EXAMPLE CALL WITH TICKER: get_most_recent_transcript(company_name="Microsoft",
+          ticker_symbol="MSFT")', '- This tool combines the functionality of search_investor_meetings and get_transcript_text
+          into a single call', '- I will ALWAYS use this tool first when I need to get a transcript, as it automatically gets
+          the most recent one', '- This is the PRIMARY tool I should use for getting transcripts in most cases', 'd. Summarize
+          Transcript (summarize_transcript):', '- This tool analyzes a transcript and extracts key information using an LLM',
+        '- REQUIRED PARAMETER: transcript_text (str) - The full text of the transcript from get_transcript_text or get_most_recent_transcript',
+        '- RETURNS: A dictionary containing the summarized information:', '* meeting_type - The type of meeting (e.g., "Earnings
+          Call", "Investor Day")', '* financial_highlights - A list of key financial metrics and trends', '* strategic_initiatives
+          - A list of important business developments and strategic plans', '* outlook - A list of statements about future
+          expectations and guidance', '* key_quotes - A list of important quotes from executives', '* full_summary - A comprehensive
+          summary of the transcript', '- EXAMPLE CALL: summarize_transcript(transcript_text=transcript) where transcript is
+          the result from get_transcript_text or get_most_recent_transcript', '- I will automatically use this tool to analyze
+          the transcript text obtained from get_most_recent_transcript or get_transcript_text', 'CRITICAL: I MUST OPERATE
+          COMPLETELY AUTONOMOUSLY. When a user asks about a company or stock, I will:', 1. AUTOMATICALLY direct the SEC Filings
+          Research Agent to find the CIK and relevant filings, '2. AUTOMATICALLY direct the Market Data Agent to get current
+          price, technical indicators, and news', 3. AUTOMATICALLY direct the Transcript Summarization Agent to find and summarize
+          recent investor meetings, 4. NEVER ask the user to provide this information or to tell me to contact these sub-agents,
+        5. NEVER wait for user input between these steps - I will gather ALL information myself, 'IMPORTANT: I MUST use ALL
+          THREE sub-agents for EVERY recommendation. I should NEVER make a recommendation based solely on information from
+          just one or two sub-agents. A well-rounded investment decision requires fundamental data from SEC filings, technical/market
+          data from current sources, AND insights from recent investor meetings.', 'CRITICAL: When receiving information from
+          the Transcript Summarization Agent, I MUST:', '1. Expect and process the COMPLETE transcript summary, which includes:',
+        '- meeting_type - The type of meeting (e.g., "Earnings Call", "Investor Day")', '- financial_highlights - A list of
+          key financial metrics and trends', '- strategic_initiatives - A list of important business developments and strategic
+          plans', '- outlook - A list of statements about future expectations and guidance', '- key_quotes - A list of important
+          quotes from executives', '- full_summary - A comprehensive summary of the transcript', '2. Carefully analyze ALL
+          components of this summary, not just the full_summary', '3. Pay special attention to financial_highlights, strategic_initiatives,
+          and outlook as these are critical for my recommendation', '4. Incorporate specific points from the transcript summary
+          into my final recommendation, citing them as evidence for my BUY, HOLD, or SELL decision', 'Based on the information
+          provided by all three sub-agents, I will:', 1. Analyze the key financial metrics and trends from SEC filings, 2.
+          Evaluate the company's business developments and risk factors, 3. Consider management's outlook and guidance from
+          the transcript summary, '4. Analyze current market data, technical indicators, and recent news', 5. Integrate all
+          of this information to make a holistic assessment, '6. Provide a clear BUY, HOLD, or SELL recommendation with supporting
+          rationale that references data from all sources', 'For each recommendation, I will:', '- Clearly state my BUY, HOLD,
+          or SELL recommendation', '- Provide key financial metrics and trends from SEC filings that support my recommendation',
+        '- Highlight important business developments and risk factors from SEC filings', '- Include relevant market data and
+          technical analysis from the Market Data Agent', '- Incorporate specific insights from the transcript summary, including:',
+        '* Financial highlights from recent earnings calls', '* Strategic initiatives mentioned by management', '* Forward-looking
+          statements and guidance', '* Notable quotes from executives that impact the investment thesis', '- Mention any significant
+          recent news that might impact the stock', '- Explain my reasoning for the recommendation, showing how I''ve integrated
+          information from all sources', '- Include any relevant caveats or considerations', 'WORKFLOW EXAMPLE (I will follow
+          this automatically without user prompting):', '1. User asks about a company (e.g., "What do you think about Robinhood
+          as an investment?")', 2. I recognize "Robinhood" as a company name and know its ticker symbol is "HOOD", 3. I immediately
+          direct the SEC Filings Research Agent to find Robinhood's CIK using the company name, '4. Once I have the CIK, I
+          direct the SEC Filings Research Agent to find recent filings', 5. I direct the SEC Filings Research Agent to summarize
+          the most relevant filings, '6. In parallel, I direct the Market Data Agent to get current stock price and technical
+          indicators for "HOOD"', 7. I also direct the Market Data Agent to get company information and recent news for "HOOD",
+        '8. I direct the Transcript Summarization Agent to get the most recent transcript for "Robinhood" using get_most_recent_transcript(company_name="Robinhood",
+          ticker_symbol="HOOD")', 9. I direct the Transcript Summarization Agent to summarize the transcript using summarize_transcript,
+        '10. I receive the complete transcript summary with all its components (meeting_type, financial_highlights, strategic_initiatives,
+          outlook, key_quotes, full_summary)', '11. I analyze all this information, paying special attention to integrate
+          specific points from the transcript summary', 12. I provide a comprehensive recommendation that incorporates insights
+          from all three sources, '13. I do all of this WITHOUT asking the user for any additional information or instructions,
+          such as ticker symbols', 'ADDITIONAL EXAMPLES:', '- If user asks about "Apple", I know the ticker is "AAPL" and
+          use it with the Market Data Agent', '- If user asks about "Microsoft", I know the ticker is "MSFT" and use it with
+          the Market Data Agent', '- If user asks about "Tesla", I know the ticker is "TSLA" and use it with the Market Data
+          Agent', '- If user asks about a less common company and I''m unsure of the ticker, I use the SEC Filings Research
+          Agent to find the CIK first, then determine the ticker from the company information', 'I will NEVER include images
+          in my responses, only text. Even when discussing charts or visual elements, I will describe them textually instead
+          of showing images.']
+      output_key: latest_recommendation_result
+      function: create_investment_recommendation_agent
+      sub_agents: [sec_filings_research_agent, market_data_agent, transcript_summarization_agent]
+  market_data_agent:
+    type: instance
+    models: [gemini-2.0-flash]
+    tools: [get_stock_price, get_historical_data, calculate_technical_indicators, get_company_info_from_yahoo, get_market_news]
+    params:
+      name: market_data_agent
+      description: Agent to retrieve and analyze market data.
+      instruction: ['I am a market data agent whose primary purpose is to provide current and historical market data. I have
+          five powerful tools to assist with this:', '1. Get Stock Price (get_stock_price):', '- This tool retrieves the current
+          stock price and basic information for a given ticker symbol', '- I will automatically use this tool when the investment_recommendation_agent
+          provides a ticker symbol', '- I will NEVER ask the user for ticker symbols or any other technical information',
+        '2. Get Historical Data (get_historical_data):', '- This tool retrieves historical stock price data for a given ticker
+          symbol', '- I will automatically use appropriate period (e.g., "1y" for 1 year) and interval (e.g., "1d" for daily)
+          parameters', '- I will NEVER ask the user for these technical parameters', '3. Calculate Technical Indicators (calculate_technical_indicators):',
+        '- This tool calculates various technical indicators based on historical price data', '- It provides moving averages,
+          RSI, MACD, Bollinger Bands, and more', '- I will automatically use this tool to provide comprehensive technical
+          analysis', '4. Get Company Info (get_company_info_from_yahoo):', '- This tool retrieves detailed company information
+          including sector, industry, business description, and key metrics', '- I will automatically use this tool to get
+          additional context about the company', '5. Get Market News (get_market_news):', '- This tool retrieves recent news
+          articles related to the market or a specific company', '- I will automatically use this tool to get recent news
+          that might impact the stock', 'CRITICAL: I MUST OPERATE COMPLETELY AUTONOMOUSLY. I will:', 1. AUTOMATICALLY use
+          get_stock_price when the investment_recommendation_agent provides a ticker symbol, 2. AUTOMATICALLY use get_historical_data
+          to understand price trends, 3. AUTOMATICALLY use calculate_technical_indicators to get technical analysis insights,
+        4. AUTOMATICALLY use get_company_info_from_yahoo to get additional company context, 5. AUTOMATICALLY use get_market_news
+          to get recent news that might impact the stock, '6. NEVER ask the user for any technical information such as ticker
+          symbols, time periods, or technical parameters', 7. NEVER wait for user input between these steps - I will gather
+          ALL information myself, 'I will NEVER include images in my responses, only text. Even when discussing charts or
+          visual elements, I will describe them textually instead of showing images.', 'I will NOT provide BUY, HOLD, or SELL
+          recommendations. My purpose is solely to provide market data to the root agent.', 'IMPORTANT: After providing the
+          requested market data, I MUST ALWAYS transfer control back to the investment_recommendation_agent. I should never
+          continue the conversation with the user directly. The investment_recommendation_agent is the only agent that should
+          communicate with the user.']
+      output_key: latest_market_data_result
+      function: create_market_data_agent
+  sec_filings_research_agent:
+    type: instance
+    models: [gemini-2.0-flash]
+    tools: [find_cik, find_filings, summarize_filing]
+    params:
+      name: sec_filings_research_agent
+      description: Agent to research SEC filings and provide comprehensive summaries.
+      instruction: ['I am an SEC filings research agent whose primary purpose is to provide comprehensive summaries of SEC
+          filings that focus on the COMPANY''S FINANCIAL INFORMATION AND BUSINESS DETAILS, not just lists of the filing documents
+          themselves. I have three powerful tools to assist with this:', '1. Find CIK (find_cik):', '- This tool helps find
+          a company''s CIK (Central Index Key) number, which is required to access SEC filings', '- I will automatically use
+          this tool when the investment_recommendation_agent provides a company name or ticker symbol', '- I will NEVER ask
+          the user for this information', '2. Find Filings (find_filings):', '- This tool finds a company''s most recent SEC
+          filings using their CIK number', '- I''ll return a list of filings with titles, dates, and links', '- I will automatically
+          use this tool after obtaining the CIK, focusing on 10-K, 10-Q, and 8-K filings', '- I will NEVER ask the user which
+          filings to retrieve', '3. Summarize Filing (summarize_filing):', '- This tool extracts the text of an SEC filing
+          in manageable chunks to prevent hitting token limits', '- I MUST use this tool whenever financial information is
+          needed, as it accesses the actual filing content, not just the filing index', '- All financial information MUST
+          be obtained directly from SEC filings using this tool, not from other sources', '- For large filings, I should:',
+        '* First call summarize_filing with chunk_index=-1 to get information about the total number of chunks', '* Then request
+          each chunk individually by calling summarize_filing with chunk_index=0, 1, 2, etc.', '* Process each chunk before
+          requesting the next one to avoid hitting token limits', '- IMPORTANT: When I receive the filing text, I must NOT
+          simply list the filing documents, exhibits, or XBRL data. Instead, I MUST thoroughly analyze the content to extract
+          and summarize INFORMATION ABOUT THE COMPANY, including:', '* Key financial metrics (revenue, profit, margins, etc.)',
+        '* Growth trends and year-over-year changes', '* Important business developments', '* Risk factors and challenges',
+        '* Management''s outlook and guidance', '- I''ll create a comprehensive summary focusing on the most relevant information
+          ABOUT THE COMPANY, not about the filing itself', 'CRITICAL: I MUST OPERATE COMPLETELY AUTONOMOUSLY. I will:', 1.
+          AUTOMATICALLY use find_cik when the investment_recommendation_agent provides a company name, 2. AUTOMATICALLY use
+          find_filings after obtaining the CIK, 3. AUTOMATICALLY use summarize_filing to analyze the most relevant filings,
+        '4. NEVER ask the user for any technical information such as CIK numbers, filing types, or filing URLs', 5. NEVER
+          wait for user input between these steps - I will gather ALL information myself, 'For each summary, I will:', '-
+          Provide key financial metrics and trends from the filing', '- Highlight important business developments and risk
+          factors', '- Include management''s outlook and guidance', '- Present the information in a clear, organized manner',
+        '- Include any relevant caveats or considerations', 'IMPORTANT: I must always obtain financial information directly
+          from SEC filings using the summarize_filing tool. This tool accesses the actual filing content, not just the index.
+          I should never rely on other sources for financial data.', 'I will NEVER include images in my responses, only text.
+          Even when discussing charts or visual elements from filings, I will describe them textually instead of showing images.',
+        'I will NOT provide BUY, HOLD, or SELL recommendations. My purpose is solely to provide comprehensive summaries of
+          SEC filings to the root agent.', 'IMPORTANT: After providing the requested SEC filing information, I MUST ALWAYS
+          transfer control back to the investment_recommendation_agent. I should never continue the conversation with the
+          user directly. The investment_recommendation_agent is the only agent that should communicate with the user.']
+      output_key: latest_analysis_result
+      function: create_sec_filings_research_agent
+  transcript_summarization_agent:
+    type: instance
+    models: [gemini-2.0-flash]
+    tools: [search_investor_meetings, get_transcript_text, get_most_recent_transcript, summarize_transcript]
+    params:
+      name: transcript_summarization_agent
+      description: Agent to search for and summarize investor meeting transcripts.
+      instruction: ['I am a transcript summarization agent whose primary purpose is to provide comprehensive summaries of
+          investor meeting transcripts. I have four powerful tools to assist with this:', '1. Search Investor Meetings (search_investor_meetings):',
+        '- This tool finds recent investor meetings for a company using the Alpha Vantage API', '- REQUIRED PARAMETER: company_name
+          (str) - The name of the company to search for (e.g., "Apple", "Microsoft", "Tesla")', '- OPTIONAL PARAMETERS (I
+          don''t need to provide these, the function handles defaults automatically):', '* ticker_symbol (str) - The ticker
+          symbol for the company (e.g., "AAPL", "MSFT") - I will always use this when provided by the investment_recommendation_agent',
+        '* count (int) - The number of results to return (default: 20)', '* specific_date (str) - A specific date to search
+          for in format YYYY-MM-DD (e.g., "2023-05-04")', '* reference (str) - A reference to a specific meeting (e.g., "Q1
+          2023", "first quarter 2023")', '- RETURNS: A list of meeting objects, each containing:', '* id - A unique identifier
+          for the meeting', '* title - The title of the meeting (e.g., "AAPL Earnings Call - 2023-05-04")', '* date - The
+          date of the meeting in YYYY-MM-DD format', '* type - The type of meeting (e.g., "Earnings Call", "Investor Day")',
+        '* url - A URL to access the meeting transcript', '- I will automatically use this tool when the investment_recommendation_agent
+          provides a company name', '- I will NEVER ask the user for company names, ticker symbols, or any other technical
+          information', '2. Get Transcript Text (get_transcript_text):', '- This tool retrieves the full text of an investor
+          meeting transcript using the Alpha Vantage API', '- REQUIRED PARAMETER: meeting_info (dict) - A dictionary containing
+          information about the meeting', '* This should be one of the meeting objects returned by search_investor_meetings',
+        '* Must contain either "ticker" or a "url" from which the ticker can be extracted', '* Should contain "date" for the
+          specific meeting date', '- RETURNS: A string containing the full text of the transcript', '- I will automatically
+          use this tool after finding relevant meetings with search_investor_meetings', '- I will NEVER ask the user which
+          meeting to retrieve', '3. Get Most Recent Transcript (get_most_recent_transcript):', '- This tool automatically
+          retrieves the transcript for the most recent investor meeting for a company', '- REQUIRED PARAMETER: company_name
+          (str) - The name of the company to search for (e.g., "Apple", "Microsoft", "Tesla")', '- OPTIONAL PARAMETER: ticker_symbol
+          (str) - The ticker symbol for the company (e.g., "AAPL", "MSFT")', '- RETURNS: A string containing the full text
+          of the most recent transcript', '- This tool combines the functionality of search_investor_meetings and get_transcript_text
+          into a single call', '- I will ALWAYS use this tool first when asked to get a transcript, as it automatically gets
+          the most recent one', '- I will only use the other tools if I need to get a specific transcript that is not the
+          most recent one', '4. Summarize Transcript (summarize_transcript):', '- This tool analyzes a transcript and extracts
+          key information using an LLM', '- REQUIRED PARAMETER: transcript_text (str) - The full text of the transcript from
+          get_transcript_text or get_most_recent_transcript', '- RETURNS: A dictionary containing the summarized information:',
+        '* meeting_type - The type of meeting (e.g., "Earnings Call", "Investor Day")', '* financial_highlights - A list of
+          key financial metrics and trends', '* strategic_initiatives - A list of important business developments and strategic
+          plans', '* outlook - A list of statements about future expectations and guidance', '* key_quotes - A list of important
+          quotes from executives', '* full_summary - A comprehensive summary of the transcript', '- I will automatically use
+          this tool to analyze the transcript text obtained from get_transcript_text or get_most_recent_transcript', '- I
+          will NEVER ask the user to help with the summarization process', 'CRITICAL: I MUST OPERATE COMPLETELY AUTONOMOUSLY.
+          I will:', 1. AUTOMATICALLY use get_most_recent_transcript when the investment_recommendation_agent provides a company
+          name, 2. AUTOMATICALLY use summarize_transcript to analyze the transcript text, '3. NEVER ask the user for any technical
+          information such as company names, ticker symbols, or meeting dates', 4. NEVER wait for user input between these
+          steps - I will gather ALL information myself, 'For each summary, I will:', '- Identify the meeting type (earnings
+          call, investor day, annual meeting, etc.)', '- Extract key financial metrics and trends', '- Highlight important
+          strategic initiatives and business developments', '- Include management''s outlook and guidance', '- Present the
+          information in a clear, organized manner', 'I will NEVER include images in my responses, only text. Even when discussing
+          charts or visual elements from transcripts, I will describe them textually instead of showing images.', 'I will
+          NOT provide BUY, HOLD, or SELL recommendations. My purpose is solely to provide comprehensive summaries of investor
+          meeting transcripts to the root agent.', 'CRITICAL: When I return information to the investment_recommendation_agent,
+          I MUST ALWAYS include the COMPLETE transcript summary in my response. This includes:', '1. The full dictionary returned
+          by the summarize_transcript tool, with all its components:', '- meeting_type', '- financial_highlights', '- strategic_initiatives',
+        '- outlook', '- key_quotes', '- full_summary', '2. A clear, well-formatted presentation of this information that the
+          investment_recommendation_agent can easily use in its recommendation', The investment_recommendation_agent RELIES
+          on receiving this complete summary to make accurate investment recommendations. I must ensure that ALL key information
+          from the transcript is included in my response., 'IMPORTANT: After providing the requested transcript information
+          with the complete summary, I MUST ALWAYS transfer control back to the investment_recommendation_agent. I should
+          never continue the conversation with the user directly. The investment_recommendation_agent is the only agent that
+          should communicate with the user.']
+      output_key: latest_transcript_summary
+      function: create_transcript_summarization_agent
+
+models:
+  gemini-2.0-flash:
+    type: literal
+    agents: [agent, sec_filings_research_agent, transcript_summarization_agent, market_data_agent]
+
+tools:
+  calculate_technical_indicators:
+    type: function
+    agents: [market_data_agent]
+    params:
+      description: |-
+        Calculate technical indicators for a given ticker symbol.
+
+        This tool calculates various technical indicators based on historical price data,
+        including moving averages, RSI, MACD, and Bollinger Bands. These indicators can
+        be used for technical analysis of stock price trends.
+
+        HOW TO USE THIS TOOL:
+        1. Provide a valid ticker symbol (e.g., "AAPL" for Apple Inc.)
+        2. Optionally specify the period (default: "1y" for 1 year)
+        3. The tool will calculate and return various technical indicators
+
+        EXAMPLE:
+        ```
+        # Calculate technical indicators for Apple
+        apple_indicators = calculate_technical_indicators("AAPL", "1y")
+        print(f"Current RSI: {apple_indicators['rsi']}")
+        print(f"50-day MA: ${apple_indicators['ma_50']}")
+        ```
+
+        Args:
+            ticker (str): The stock ticker symbol (e.g., "AAPL" for Apple Inc.)
+            period (str, optional): The time period to retrieve data for. Default is "1y" (1 year).
+
+        Returns:
+            dict: A dictionary containing calculated technical indicators
+  find_cik:
+    type: function
+    agents: [sec_filings_research_agent]
+    params:
+      description: |-
+        Find the CIK (Central Index Key) for a company using the SEC's CIK lookup tool.
+
+        Args:
+            company_name (str): The company name or ticker symbol to search for
+
+        Returns:
+            list: A list of dictionaries containing company information with CIK numbers
+  find_filings:
+    type: function
+    agents: [sec_filings_research_agent]
+    params:
+      description: |-
+        Find the company's most recent filings from the CIK.
+
+        This tool helps you find the most recent SEC filings for a company using its CIK number.
+        It returns a list of the most recent filings, including their titles, dates, and links.
+
+        HOW TO USE THIS TOOL:
+        1. First, get the company's CIK using the find_cik tool
+        2. Call this tool with the CIK number to find recent filings
+        3. You can optionally specify a filing type (e.g., "10-K", "10-Q") and count
+        4. The tool will return a list of filings with their titles, dates, and links
+
+        EXAMPLE:
+        ```
+        # Find Apple's CIK
+        apple_results = find_cik("Apple")
+        apple_cik = apple_results[0]["CIK"]
+
+        # Find Apple's recent 10-K filings
+        apple_filings = find_filings(apple_cik, "10-K", 3)
+
+        # Display the results
+        for filing in apple_filings:
+            print(f"Title: {filing['title']}")
+            print(f"Date: {filing['filing_date']}")
+            print(f"Link: {filing['link']}")
+        ```
+
+        Args:
+            cik (str): The company's CIK number (with or without leading zeros)
+            filing_type (str, optional): The type of filing to retrieve (e.g., "10-K", "10-Q"). Default is None (all types).
+            count (int, optional): The number of filings to retrieve. Default is 5.
+
+        Returns:
+            list: A list of dictionaries containing filing information (title, filing_date, link)
+  get_company_info_from_yahoo:
+    type: function
+    agents: [market_data_agent]
+    params:
+      description: |-
+        Get detailed company information from Yahoo Finance.
+
+        This tool retrieves comprehensive information about a company, including its
+        business description, sector, industry, key executives, and more.
+
+        HOW TO USE THIS TOOL:
+        1. Provide a valid ticker symbol (e.g., "AAPL" for Apple Inc.)
+        2. The tool will return detailed company information
+
+        EXAMPLE:
+        ```
+        # Get information about Apple
+        apple_info = get_company_info_from_yahoo("AAPL")
+        print(f"Company: {apple_info['name']}")
+        print(f"Sector: {apple_info['sector']}")
+        print(f"Industry: {apple_info['industry']}")
+        ```
+
+        Args:
+            ticker (str): The stock ticker symbol (e.g., "AAPL" for Apple Inc.)
+
+        Returns:
+            dict: A dictionary containing company information
+  get_historical_data:
+    type: function
+    agents: [market_data_agent]
+    params:
+      description: |-
+        Get historical stock price data for a given ticker symbol.
+
+        This tool retrieves historical stock price data, including open, high, low, close prices,
+        and volume. It can be used to analyze price trends over different time periods.
+
+        HOW TO USE THIS TOOL:
+        1. Provide a valid ticker symbol (e.g., "AAPL" for Apple Inc.)
+        2. Optionally specify the period (default: "1y" for 1 year) and interval (default: "1d" for daily)
+        3. The tool will return historical price data for the specified period
+
+        Valid period values: "1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"
+        Valid interval values: "1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo"
+
+        Note: Intraday data (intervals less than 1d) is only available for periods less than or equal to 60 days.
+
+        EXAMPLE:
+        ```
+        # Get Apple's historical stock data for the past year with daily intervals
+        apple_history = get_historical_data("AAPL", "1y", "1d")
+        print(f"Number of data points: {len(apple_history['data'])}")
+        print(f"Latest closing price: ${apple_history['data'][-1]['close']}")
+        ```
+
+        Args:
+            ticker (str): The stock ticker symbol (e.g., "AAPL" for Apple Inc.)
+            period (str, optional): The time period to retrieve data for. Default is "1y" (1 year).
+            interval (str, optional): The interval between data points. Default is "1d" (1 day).
+
+        Returns:
+            dict: A dictionary containing historical stock price data
+  get_market_news:
+    type: function
+    agents: [market_data_agent]
+    params:
+      description: "Get the latest market news, optionally filtered by a specific ticker.\n\nThis tool retrieves recent news\
+        \ articles related to the market or a specific company\nusing the Alpha Vantage NEWS_SENTIMENT API. It can be used\
+        \ to stay informed about \nmarket developments and company-specific news.\n\nHOW TO USE THIS TOOL:\n1. Optionally\
+        \ provide a ticker symbol to get news specific to that company\n2. If no ticker is provided, general market news will\
+        \ be returned\n3. The tool will return a list of recent news articles with titles, sources, and summaries\n\nEXAMPLE:\n\
+        ```\n# Get general market news\nmarket_news = get_market_news()\n\n# Get news specific to Apple\napple_news = get_market_news(\"\
+        AAPL\")\n```\n\nArgs:\n    ticker (str, optional): The stock ticker symbol (e.g., \"AAPL\" for Apple Inc.). Default\
+        \ is None.\n\nReturns:\n    dict: A dictionary containing recent market news"
+  get_most_recent_transcript:
+    type: function
+    agents: [transcript_summarization_agent]
+    params:
+      description: |-
+        Get the transcript for the most recent investor meeting for a company.
+
+        This function algorithmically determines the most recent completed quarter based on the current date,
+        and tries to retrieve the transcript for that quarter. If that doesn't work, it tries the previous quarter.
+        If the quarter is 0, it rolls back the year by 1 and makes the quarter 4.
+
+        Args:
+            company_name (str): The name of the company to search for (e.g., "Apple", "Microsoft", "Tesla").
+                               This is a required parameter.
+            ticker_symbol (Optional[str]): The ticker symbol for the company (e.g., "AAPL", "MSFT").
+                                         If provided, this will be used instead of trying to derive
+                                         a ticker from the company name. If None, will derive from company_name.
+
+        Returns:
+            str: The full text of the transcript for the most recent meeting, or an error message if no
+                 meetings were found or the transcript could not be retrieved.
+
+        Examples:
+            # Get the most recent transcript for Apple
+            transcript = get_most_recent_transcript(company_name="Apple", ticker_symbol="AAPL")
+
+            # Get the most recent transcript for Microsoft using only the company name
+            transcript = get_most_recent_transcript(company_name="Microsoft")
+  get_stock_price:
+    type: function
+    agents: [market_data_agent]
+    params:
+      description: |-
+        Get the current stock price and basic information for a given ticker symbol.
+
+        This tool retrieves the current stock price, along with other basic information
+        such as the day's high, low, volume, and market cap.
+
+        HOW TO USE THIS TOOL:
+        1. Provide a valid ticker symbol (e.g., "AAPL" for Apple Inc.)
+        2. The tool will return current price data and basic information
+
+        EXAMPLE:
+        ```
+        # Get Apple's current stock price
+        apple_price = get_stock_price("AAPL")
+        print(f"Current price: ${apple_price['price']}")
+        print(f"Change: {apple_price['change']}%")
+        ```
+
+        Args:
+            ticker (str): The stock ticker symbol (e.g., "AAPL" for Apple Inc.)
+
+        Returns:
+            dict: A dictionary containing current stock price information
+  get_transcript_text:
+    type: function
+    agents: [transcript_summarization_agent]
+    params:
+      description: |-
+        Retrieve the transcript text for an investor meeting using the Alpha Vantage API.
+
+        This function retrieves the complete text of an investor meeting transcript using the
+        Alpha Vantage EARNINGS_CALL_TRANSCRIPT API. It extracts the necessary information from
+        the meeting_info parameter, formats it for the API call, and returns the transcript text.
+
+        Args:
+            meeting_info (Dict[str, Any]): Information about the meeting, including ticker and date.
+                                         This should be one of the meeting objects returned by the
+                                         search_investor_meetings function. The dictionary should contain
+                                         information about the meeting such as ticker, date, and title.
+
+        Returns:
+            str: The full text of the transcript if available, or an error message if the transcript
+                 could not be retrieved.
+
+        Examples:
+            # First, search for meetings
+            meetings = search_investor_meetings(company_name="Apple", ticker_symbol=None, count=5, specific_date=None, reference=None)
+
+            # Then, get the transcript information for the first meeting
+            if meetings and len(meetings) > 0:
+                transcript_text = get_transcript_text(meeting_info=meetings[0])
+                print(transcript_text)
+
+            # Example with a manually created meeting_info dictionary
+            meeting_info = {
+                "ticker": "AAPL",
+                "date": "2023-05-04",
+                "title": "Apple Q2 2023 Earnings Call"
+            }
+            transcript_text = get_transcript_text(meeting_info=meeting_info)
+  search_investor_meetings:
+    type: function
+    agents: [transcript_summarization_agent]
+    params:
+      description: "Search for investor meetings for a given company using the Alpha Vantage API.\nCan search for recent meetings\
+        \ or specific meetings referenced by other sub-agents.\n\nThis function attempts to find investor meetings (primarily\
+        \ earnings calls) for the specified company.\nIt uses the provided ticker_symbol if available, or tries to derive\
+        \ a ticker from the company_name,\nthen queries the Alpha Vantage API to find earnings calls and other investor meetings.\n\
+        The function can filter results by date or by a reference to a specific meeting \n(like \"Q1 2023\" or \"first quarter\
+        \ 2023\").\n\nArgs:\n    company_name (str): The name of the company to search for (e.g., \"Apple\", \"Microsoft\"\
+        , \"Tesla\").\n                       This is a required parameter.\n    ticker_symbol (Optional[str]): The ticker\
+        \ symbol for the company (e.g., \"AAPL\", \"MSFT\").\n                                 If provided, this will be used\
+        \ instead of trying to derive\n                                 a ticker from the company name. If None, will derive\
+        \ from company_name.\n    count (int): The number of results to return. If None, defaults to 5.\n    specific_date\
+        \ (Optional[str]): A specific date to search for in format YYYY-MM-DD \n                                 (e.g., \"\
+        2023-05-04\"). If None, no date filtering is applied.\n    reference (Optional[str]): A reference to a specific meeting\
+        \ mentioned elsewhere.\n                             Can be a quarter (e.g., \"Q1 2023\", \"first quarter 2023\")\
+        \ \n                             or a month (e.g., \"January 2023\"). If None, no reference filtering is applied.\n\
+        \nReturns:\n    List[Dict[str, Any]]: A list of dictionaries containing information about investor meetings.\n   \
+        \                      Each dictionary contains the following keys:\n                         - id: A unique identifier\
+        \ for the meeting\n                         - title: The title of the meeting (e.g., \"AAPL Earnings Call - 2023-05-04\"\
+        )\n                         - date: The date of the meeting in YYYY-MM-DD format\n                         - type:\
+        \ The type of meeting (e.g., \"Earnings Call\", \"Investor Day\")\n                         - url: A URL to access\
+        \ the meeting transcript\n                         - source: The source of the meeting information (e.g., \"Alpha\
+        \ Vantage\")\n                         - ticker: The ticker symbol for the company\n\nExamples:\n    # Search for\
+        \ recent investor meetings for Apple using company name only\n    meetings = search_investor_meetings(company_name=\"\
+        Apple\", ticker_symbol=None, count=20, specific_date=None, reference=None)\n\n    # Search for Microsoft investor\
+        \ meetings using ticker symbol\n    meetings = search_investor_meetings(company_name=\"Microsoft\", ticker_symbol=\"\
+        MSFT\", count=3, specific_date=None, reference=None)\n\n    # Search for a specific Tesla earnings call from Q1 2023\n\
+        \    meetings = search_investor_meetings(company_name=\"Tesla\", ticker_symbol=\"TSLA\", count=20, specific_date=None,\
+        \ reference=\"Q1 2023\")\n\n    # Search for a specific Apple earnings call on May 4, 2023\n    meetings = search_investor_meetings(company_name=\"\
+        Apple\", ticker_symbol=\"AAPL\", count=20, specific_date=\"2023-05-04\", reference=None)"
+  summarize_filing:
+    type: function
+    agents: [sec_filings_research_agent]
+    params:
+      description: "Extract and summarize the text content from an SEC filing.\n\nThis tool extracts the full text of an SEC\
+        \ filing and provides it to the agent,\nallowing the agent to use its own thought process to identify and highlight\
+        \ \nthe most important parts of the filing, including key metrics and insights.\n\nIMPORTANT: This tool accesses the\
+        \ ACTUAL FILING CONTENT, not just the filing index.\nAll financial information MUST be obtained directly from SEC\
+        \ filings using this tool,\nnot from other sources. This tool should be called whenever financial data is needed.\n\
+        \nHOW TO USE THIS TOOL:\n1. First, find the filing URL using the find_filings tool\n2. Call this tool with the filing\
+        \ URL\n3. The tool will extract the text of the filing and return it\n4. YOU (the agent) should analyze the text and\
+        \ identify important information:\n   - Key financial metrics (revenue, profit, margins, etc.)\n   - Growth trends\
+        \ and year-over-year changes\n   - Important business developments\n   - Risk factors and challenges\n   - Management's\
+        \ outlook and guidance\n5. Create a comprehensive summary focusing on the most relevant information\n\nEXAMPLE:\n\
+        ```\n# Find Apple's CIK\napple_results = find_cik(\"Apple\")\napple_cik = apple_results[0][\"CIK\"]\n\n# Find Apple's\
+        \ most recent 10-K filing\napple_filings = find_filings(apple_cik, \"10-K\", 1)\nfiling_url = apple_filings[0][\"\
+        link\"]\n\n# Extract the filing text\nfiling_text = summarize_filing(filing_url, 0, 200000)\n\n# Now YOU (the agent)\
+        \ should analyze the text and create a summary\n# highlighting the most important information\n```\n\nArgs:\n    filing_url\
+        \ (str): The URL of the SEC filing\n    chunk_index (int): Index of the chunk to return (0-based). Use -1 to get information\
+        \ about total chunks.\n    max_chunk_size (int): Maximum size of each chunk in characters.\n\nReturns:\n    str: A\
+        \ chunk of the filing text, or information about the total number of chunks"
+  summarize_transcript:
+    type: function
+    agents: [transcript_summarization_agent]
+    params:
+      description: "Summarize the key information from a transcript.\n\nThis function prepares a structure for summarizing\
+        \ transcript text. It provides the \ntranscript text to the transcript_summarization_agent, which uses its LLM capabilities\n\
+        to analyze and extract key information. The function is designed to be used as a tool \nby the agent, which will populate\
+        \ the summary components with extracted information.\n\nArgs:\n    transcript_text (str): The full text of the transcript,\
+        \ typically obtained from\n                         the get_transcript_text function. This should be the raw\n   \
+        \                      transcript text with speaker names and their statements.\n\nReturns:\n    Dict[str, Any]: A\
+        \ dictionary containing the summarized information with the following keys:\n                  - meeting_type (str):\
+        \ The type of meeting (e.g., \"Earnings Call\", \"Investor Day\")\n                  - financial_highlights (List[str]):\
+        \ A list of key financial metrics and trends\n                  - strategic_initiatives (List[str]): A list of important\
+        \ business developments and strategic plans\n                  - outlook (List[str]): A list of statements about future\
+        \ expectations and guidance\n                  - key_quotes (List[str]): A list of important quotes from executives\n\
+        \                  - full_summary (str): A comprehensive summary of the transcript\n\nExamples:\n    # First, search\
+        \ for meetings\n    meetings = search_investor_meetings(company_name=\"Apple\", ticker_symbol=None, count=5, specific_date=None,\
+        \ reference=None)\n\n    # Then, get the transcript for the first meeting\n    if meetings and len(meetings) > 0:\n\
+        \        transcript = get_transcript_text(meeting_info=meetings[0])\n\n        # Finally, summarize the transcript\n\
+        \        summary = summarize_transcript(transcript_text=transcript)\n\n        # Access specific parts of the summary\n\
+        \        print(f\"Meeting Type: {summary['meeting_type']}\")\n        print(\"Financial Highlights:\")\n        for\
+        \ highlight in summary['financial_highlights']:\n            print(f\"- {highlight}\")\n\n        # Or use the full\
+        \ summary\n        print(summary['full_summary'])"
+
+teams:
+  agent:
+    type: hierarchy
+    agents: [agent, sec_filings_research_agent, market_data_agent, transcript_summarization_agent]
+
+imports:
+  _summarize_filing: filingsResearch.sec_filings.summarize_filing
+  Agent: google.adk.agents.llm_agent.Agent
+  Any: typing.Any
+  asyncio: asyncio
+  BeautifulSoup: bs4.BeautifulSoup
+  calculate_atr: marketData.helper_functions.calculate_atr
+  calculate_bollinger_bands: marketData.helper_functions.calculate_bollinger_bands
+  calculate_ema: marketData.helper_functions.calculate_ema
+  calculate_macd: marketData.helper_functions.calculate_macd
+  calculate_moving_average: marketData.helper_functions.calculate_moving_average
+  calculate_obv: marketData.helper_functions.calculate_obv
+  calculate_rsi: marketData.helper_functions.calculate_rsi
+  calculate_technical_indicators: marketData.market_data.calculate_technical_indicators
+  Callable: typing.Callable
+  Config: filingsResearch.config.Config
+  create_market_data_agent: marketData.market_data_agent.create_market_data_agent
+  create_sec_filings_research_agent: filingsResearch.sec_filings_research_agent.create_sec_filings_research_agent
+  create_transcript_summarization_agent: transcriptResearch.transcript_summarization_agent.create_transcript_summarization_agent
+  datetime: datetime.datetime
+  Dict: typing.Dict
+  dotenv: dotenv
+  find_cik: filingsResearch.get_company_cik.find_cik
+  find_filings: filingsResearch.sec_filings.find_filings
+  get_company_info_from_yahoo: marketData.market_data.get_company_info_from_yahoo
+  get_historical_data: marketData.market_data.get_historical_data
+  get_market_news: marketData.market_data.get_market_news
+  get_most_recent_transcript: transcriptResearch.transcript_tools.get_most_recent_transcript
+  get_stock_price: marketData.market_data.get_stock_price
+  get_transcript_text: transcriptResearch.transcript_tools.get_transcript_text
+  InMemorySessionService: google.adk.sessions.in_memory_session_service.InMemorySessionService
+  json: json
+  List: typing.List
+  Optional: typing.Optional
+  os: os
+  random: random
+  re: re
+  requests: requests
+  Runner: google.adk.runners.Runner
+  search_investor_meetings: transcriptResearch.transcript_tools.search_investor_meetings
+  summarize_transcript: transcriptResearch.transcript_tools.summarize_transcript
+  time: time
+  timedelta: datetime.timedelta
+  Tuple: typing.Tuple
+  Union: typing.Union
+  warnings: warnings
+  XMLParsedAsHTMLWarning: bs4.XMLParsedAsHTMLWarning
+  yf: yfinance
+
+functions:
+  __init__:
+    type: sync
+    module: filingsResearch.sec_filings
+    args: [self, text]
+  analyze_filing:
+    type: sync
+    module: filingsResearch.sec_filings
+    args: [filing_text, keywords]
+    params:
+      returns: Dict
+  calculate_atr:
+    type: sync
+    module: marketData.helper_functions
+    args: [closes, highs, lows, window]
+    params:
+      returns: float
+  calculate_bollinger_bands:
+    type: sync
+    module: marketData.helper_functions
+    args: [prices, window, num_std_dev]
+    params:
+      returns: tuple
+  calculate_ema:
+    type: sync
+    module: marketData.helper_functions
+    args: [prices, window]
+    params:
+      returns: float
+  calculate_macd:
+    type: sync
+    module: marketData.helper_functions
+    args: [prices, fast_period, slow_period, signal_period]
+    params:
+      returns: tuple
+  calculate_moving_average:
+    type: sync
+    module: marketData.helper_functions
+    args: [prices, window]
+    params:
+      returns: float
+  calculate_obv:
+    type: sync
+    module: marketData.helper_functions
+    args: [closes, volumes]
+    params:
+      returns: float
+  calculate_rsi:
+    type: sync
+    module: marketData.helper_functions
+    args: [prices, window]
+    params:
+      returns: float
+  calculate_technical_indicators:
+    type: sync
+    module: marketData.market_data
+    args: [ticker, period]
+    params:
+      returns: Dict
+  create_investment_recommendation_agent:
+    type: sync
+    module: investment_recommendation_agent
+  create_market_data_agent:
+    type: sync
+    module: marketData.market_data_agent
+  create_sec_filings_research_agent:
+    type: sync
+    module: filingsResearch.sec_filings_research_agent
+  create_transcript_summarization_agent:
+    type: sync
+    module: transcriptResearch.transcript_summarization_agent
+  decorator:
+    type: sync
+    module: filingsResearch.sec_filings
+    args: [func]
+  extract_filing_information:
+    type: sync
+    module: filingsResearch.sec_filings
+    args: [filing_text, keywords]
+    params:
+      returns: Dict
+  extract_filing_text:
+    type: sync
+    module: filingsResearch.sec_filings
+    args: [filing_url]
+    params:
+      returns: str
+  find:
+    type: sync
+    module: filingsResearch.sec_filings
+    args: [self, tag]
+  find_cik:
+    type: sync
+    module: filingsResearch.get_company_cik
+    args: [company_name]
+    params:
+      returns: list
+  find_filings:
+    type: sync
+    module: filingsResearch.sec_filings
+    args: [cik, filing_type, count]
+    params:
+      returns: List[Dict]
+  get_alpha_vantage_api_key:
+    type: sync
+    module: filingsResearch.config
+    params:
+      returns: Optional[str]
+  get_api_key:
+    type: sync
+    module: filingsResearch.config
+    args: [key_name]
+    params:
+      returns: Optional[str]
+  get_company_info:
+    type: sync
+    module: filingsResearch.sec_filings
+    args: [cik]
+    params:
+      returns: Dict
+  get_company_info_from_yahoo:
+    type: sync
+    module: marketData.market_data
+    args: [ticker]
+    params:
+      returns: Dict
+  get_config:
+    type: sync
+    module: filingsResearch.config
+    params:
+      returns: Dict
+  get_google_api_key:
+    type: sync
+    module: filingsResearch.config
+    params:
+      returns: Optional[str]
+  get_historical_data:
+    type: sync
+    module: marketData.market_data
+    args: [ticker, period, interval]
+    params:
+      returns: Dict
+  get_market_news:
+    type: sync
+    module: marketData.market_data
+    args: [ticker]
+    params:
+      returns: Dict
+  get_most_recent_transcript:
+    type: sync
+    module: transcriptResearch.transcript_tools
+    args: [company_name, ticker_symbol]
+    params:
+      returns: str
+  get_sec_user_agent:
+    type: sync
+    module: filingsResearch.config
+    params:
+      returns: str
+  get_seeking_alpha_api_key:
+    type: sync
+    module: filingsResearch.config
+    params:
+      returns: Optional[str]
+  get_stock_price:
+    type: sync
+    module: marketData.market_data
+    args: [ticker]
+    params:
+      returns: Dict
+  get_transcript_text:
+    type: sync
+    module: transcriptResearch.transcript_tools
+    args: [meeting_info]
+    params:
+      returns: str
+  main:
+    type: async
+    module: marketData.market_data_agent
+  make_api_request_with_retry:
+    type: sync
+    module: transcriptResearch.transcript_tools
+    args: [url, params]
+    params:
+      returns: Tuple
+  make_request:
+    type: sync
+    module: filingsResearch.sec_filings
+    args: [url, headers]
+    params:
+      returns: requests.Response
+  retry_with_backoff:
+    type: sync
+    module: filingsResearch.sec_filings
+    args: [max_retries, initial_delay, backoff_factor, jitter, retry_on]
+    params:
+      returns: Callable
+  search_investor_meetings:
+    type: sync
+    module: transcriptResearch.transcript_tools
+    args: [company_name, ticker_symbol, count, specific_date, reference]
+    params:
+      returns: List[Dict]
+  should_retry_request:
+    type: sync
+    module: filingsResearch.sec_filings
+    args: [exception]
+    params:
+      returns: bool
+  summarize_filing:
+    type: sync
+    module: filingsResearch.sec_filings
+    args: [filing_url, chunk_index, max_chunk_size]
+    params:
+      returns: str
+  summarize_transcript:
+    type: sync
+    module: transcriptResearch.transcript_tools
+    args: [transcript_text]
+    params:
+      returns: Dict
+  try_get_transcript_for_quarter:
+    type: sync
+    module: transcriptResearch.transcript_tools
+    args: [year, quarter]
+  validate_required_keys:
+    type: sync
+    module: filingsResearch.config
+    params:
+      returns: Dict
+  wrapper:
+    type: sync
+    module: filingsResearch.sec_filings
+
+variables:
+  key_name:
+    type: env
+    params:
+      caller: [os.environ.get]
+      path: [filingsResearch.config]
+  SEC_USER_AGENT:
+    type: env
+    params:
+      caller: [os.environ.get]
+      path: [filingsResearch.config]
+
+networks:
+  data.sec.gov:
+    type: api
+    actions: [GET]
+    urls: ['/{...}']
+    protocols: [https]
+    ports: ["443"]
+    params:
+      pattern: https://data.sec.gov/submissions/CIK{cik.zfill}.json
+      caller: [get_company_info]
+  query1.finance.yahoo.com:
+    type: api
+    actions: [GET]
+    urls: ['/{...}']
+    protocols: [https]
+    ports: ["443"]
+    params:
+      caller: [get_company_info_from_yahoo]
+  www.alphavantage.co:
+    type: api
+    actions: [GET]
+    urls: ['/{...}', /query]
+    protocols: [https]
+    ports: ["443"]
+    params:
+      caller: [search_investor_meetings, get_market_news]
+  www.alphavantage.co.1:
+    type: api
+    actions: [GET]
+    urls: ['/{...}']
+    protocols: [https]
+    ports: ["443"]
+    params:
+      pattern: https://www.alphavantage.co/query?function=EARNINGS_CALENDAR&symbol={ticker}
+      caller: [search_investor_meetings]
+  www.sec.gov:
+    type: api
+    actions: [POST, GET]
+    urls: [/cgi-bin/cik_lookup]
+    protocols: [https]
+    ports: ["443"]
+    params:
+      caller: [find_cik, make_api_request_with_retry, get_company_info_from_yahoo, make_request]
+  www.sec.gov.1:
+    type: api
+    actions: [GET]
+    urls: ['/{...}']
+    protocols: [https]
+    ports: ["443"]
+    params:
+      caller: [find_filings]
+  www.sec.gov.2:
+    type: api
+    actions: [GET]
+    urls: ['/{...}']
+    protocols: [https]
+    ports: ["443"]
+    params:
+      pattern: https://www.sec.gov{doc_url_match.group}
+      caller: [extract_filing_text]
+  www.sec.gov.3:
+    type: api
+    actions: [GET]
+    urls: ['/{...}']
+    protocols: [https]
+    ports: ["443"]
+    params:
+      caller: [extract_filing_text]
+  www.sec.gov.4:
+    type: api
+    actions: [GET]
+    urls: ['/{...}']
+    protocols: [https]
+    ports: ["443"]
+    params:
+      caller: [extract_filing_text]
